@@ -1,10 +1,26 @@
 import mergeDeep from "lodash.merge"
+
+export class ErrorX extends Error {
+    constructor({message, status}) {
+        super(message)
+        this.status = status
+        Error.captureStackTrace(this, ErrorX)
+        // Errors are passed through frame boundaries so they should
+        // be serializable (think err = {...err}).
+        // The `message` is not enumerable so we fix that:
+        Object.defineProperty(this, "message", {
+            enumerable: true,
+            get: () => message,
+        })
+    }
+}
+
 export async function fetchJSON(url, options = {}) {
     options = mergeDeep(options, {
         // credentials: "same-origin",
         headers: {
             "accept": "application/json",
-            "authorization": "bearer 0e2451cddea32f88620bad55c11d784946557693",
+            "authorization": "bearer 57e8ed284cb66d3bfcc07fd24353d128614add12",
             "content-type": "application/json",
         },
         body: JSON.stringify(options.body),
@@ -18,10 +34,25 @@ export async function fetchJSON(url, options = {}) {
             }
         } catch (err) {
             // Bad JSON
-            throw new Error(err)
+            throw new ErrorX({status: resp.status, message: `API: Invalid JSON`})
         }
     } else {
         // Bad Content-type
-        throw new Error( `API: Invalid mime-type`)
+        throw new ErrorX({status: resp.status, message: `API: Invalid mime-type`})
     }
 }
+
+export async function fetchGQL(url, query, variables) {
+    let {body, status} = await fetchJSON(url, {
+        method: "POST",
+        body: {
+            query,
+            variables,
+        },
+    })
+    if (body.errors) {
+        throw new ErrorX({status, message: body.errors[0].message})
+    }
+    return body.data
+}
+

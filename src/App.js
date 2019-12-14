@@ -1,5 +1,5 @@
 import React, {Component} from "react"
-import {fetchJSON} from "./lib/fetch-json"
+import {fetchGQL} from "./lib/fetch-json"
 
 class App extends Component {
     constructor(props) {
@@ -20,15 +20,10 @@ class App extends Component {
                         }
                       }
                     `;
-        const options = {
-            method: "POST",
-            body: {query}
-        };
-
-        let data = await fetchJSON(url, options);
+        let {user} = await fetchGQL(url, query);
         // console.log(data.body.data.user)
         this.setState({
-            user: data.body.data.user,
+            user: user,
             loading: false,
         })
     }
